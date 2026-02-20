@@ -33,9 +33,9 @@ def _ensure_results_table(engine) -> None:
     with engine.begin() as conn:
         conn.exec_driver_sql(sql)
 
-@asset
-def discovered_tables(context: AssetExecutionContext, postgres) -> pd.DataFrame:
-    engine = postgres.engine()
+@asset(required_resource_keys={"postgres"})
+def discovered_tables(context: AssetExecutionContext) -> pd.DataFrame:
+    engine = context.resources.postgres
     q = """
     SELECT table_schema AS schema_name, table_name
     FROM information_schema.tables
@@ -47,9 +47,9 @@ def discovered_tables(context: AssetExecutionContext, postgres) -> pd.DataFrame:
     context.log.info(f"Discovered {len(df)} tables")
     return df
 
-@asset
-def table_profiles(context: AssetExecutionContext, postgres, discovered_tables: pd.DataFrame) -> pd.DataFrame:
-    engine = postgres.engine()
+@asset(required_resource_keys={"postgres"})
+def table_profiles(context: AssetExecutionContext, discovered_tables: pd.DataFrame) -> pd.DataFrame:
+    engine = context.resources.postgres
     results = []
 
     for _, row in discovered_tables.iterrows():
@@ -91,9 +91,9 @@ def table_profiles(context: AssetExecutionContext, postgres, discovered_tables: 
 
     return pd.DataFrame(results)
 
-@asset
-def write_dq_results(context: AssetExecutionContext, postgres, table_profiles: pd.DataFrame) -> int:
-    engine = postgres.engine()
+@asset(required_resource_keys={"postgres"})
+def write_dq_results(context: AssetExecutionContext, table_profiles: pd.DataFrame) -> int:
+    engine = context.resources.postgres
     _ensure_results_table(engine)
 
     run_ts = dt.datetime.utcnow()
@@ -109,7 +109,6 @@ def write_dq_results(context: AssetExecutionContext, postgres, table_profiles: p
 @asset
 def dq_alerts(context: AssetExecutionContext, table_profiles: pd.DataFrame) -> dict:
     bad_nulls = table_profiles[table_profiles["null_pct"] > 0.20]
-
     summary = {"bad_null_columns": int(len(bad_nulls))}
 
     if summary["bad_null_columns"] > 0:
