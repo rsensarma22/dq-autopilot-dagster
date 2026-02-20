@@ -5,3 +5,5 @@ __pycache__/
 .dagster/
 *.log
 .env
+.tmp_dagster_home_*
+.dagster/
