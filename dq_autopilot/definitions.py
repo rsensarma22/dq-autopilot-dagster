@@ -16,6 +16,7 @@
 #Automated script for 9am runs
 
 from dagster import Definitions, ScheduleDefinition, define_asset_job
+from dq_autopilot.assets.dedup_assets import dataset_rows, text_fingerprints, dedup_report, leakage_report, dedup_alerts
 from dq_autopilot.resources.postgres import postgres
 from dq_autopilot.assets.dq_assets import (
     discovered_tables,
@@ -34,7 +35,15 @@ daily_9am = ScheduleDefinition(
 )
 
 defs = Definitions(
-    assets=[discovered_tables, table_profiles, write_dq_results, dq_failures, dq_alerts],
+    #assets=[discovered_tables, table_profiles, write_dq_results, dq_failures, dq_alerts],
+    assets=[
+  dataset_rows,
+  text_fingerprints,
+  dedup_report,
+  leakage_report, 
+  dedup_alerts
+  # (optional) keep your profiling / dq_failures / dq_alerts assets
+],
     resources={"postgres": postgres},
     schedules=[daily_9am],
 )
